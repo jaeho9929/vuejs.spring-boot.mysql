@@ -18,8 +18,28 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+  // MySQL driver class
+  runtimeOnly 'mysql:mysql-connector-java'
 }
 
 test {
 	useJUnitPlatform()
+}
+
+// ./gradlew bootRun -Pprofile=dev
+ext.profile = (!project.hasProperty('profile') || !profile) ? 'dev' : profile
+
+sourceSets {
+    main {
+        resources {
+            srcDirs "src/main/resources", "src/main/resources-env/${profile}"
+        }
+    }
+}
+
+tasks {
+  processResources {
+    duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.INCLUDE
+  }
 }
