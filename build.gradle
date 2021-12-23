@@ -2,6 +2,9 @@ plugins {
 	id 'org.springframework.boot' version '2.6.1'
 	id 'io.spring.dependency-management' version '1.0.11.RELEASE'
 	id 'java'
+
+  // for FE integration
+  id 'com.github.node-gradle.node' version '3.1.1'
 }
 
 group = 'com.taskagile'
@@ -26,6 +29,56 @@ dependencies {
 test {
 	useJUnitPlatform()
 }
+
+node {
+	version = '14.17.0'
+	npmVersion = '8.1.4'
+	workDir = file('./front-end')
+  yarnWorkDir = file('./front-end')
+	nodeModulesDir = file('./front-end')
+}
+
+task deleteVueArtifact(type: Delete) {
+  description 'Delete old frontend artifacts'
+	delete "./src/main/resources/static"
+	delete "./src/main/resources/templates"
+}
+
+task installYarn(type: YarnTask) {
+  description "'Do 'yarn install'"
+	args=["install"]
+}
+
+task testYarn(type: YarnTask, dependsOn:['installYarn']) {
+  description "Do 'yarn test:unit'"
+  args=["test:unit"]
+}
+
+task yarnBuild(type: YarnTask, dependsOn:['deleteVueArtifact', 'testYarn']) {
+  description "Do 'yarn build'"
+	args=["build"]
+}
+
+task copyFrontend(type: YarnTask, dependsOn: ['yarnBuild']) {
+  description "Copy static files"
+  copy {
+    from "./front-end/dist/index.html"
+    into "./src/main/resources/templates"
+  }
+  copy {
+    from "./front-end/dist"
+    into "./src/main/resources/static"
+    exclude "*.html"
+  }
+}
+
+task e2eYarn(type: YarnTask, dependsOn:['test']) {
+  description "Do 'yarn test:e2e'"
+  args=["test:e2e"]
+}
+
+jar.dependsOn 'copyFrontend'
+check.dependsOn 'e2eYarn'
 
 // ./gradlew bootRun -Pprofile=dev
 ext.profile = (!project.hasProperty('profile') || !profile) ? 'dev' : profile

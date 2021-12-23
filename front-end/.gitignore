@@ -26,3 +26,4 @@ selenium-debug.log*
 
 ### custom ignores ###
 /tests/e2e/reports/
+/yarn-latest
