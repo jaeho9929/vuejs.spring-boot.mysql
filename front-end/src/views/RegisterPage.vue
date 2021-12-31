@@ -13,10 +13,10 @@
         </div>
         <form @submit.prevent="submitForm">
           <div
-            v-show="errorMessage.visible"
+            v-show="errorMessage"
             class="alert alert-danger failed"
           >
-            {{ errorMessage.message }}
+            {{ errorMessage }}
           </div>
           <div class="form-group">
             <label for="username">Username</label>
@@ -26,6 +26,35 @@
               type="text"
               class="form-control"
             >
+            <div
+              v-if="v$.username.$dirty"
+              class="field-error"
+            >
+              <div
+                v-if="v$.username.required.$invalid"
+                class="error"
+              >
+                Username is required
+              </div>
+              <div
+                v-if="v$.username.alphaNum.$invalid"
+                class="error"
+              >
+                Username can only contain letters and numbers
+              </div>
+              <div
+                v-if="v$.username.minLength.$invalid"
+                class="error"
+              >
+                Username must have at least {{ v$.username.minLength.$params.min }} letters.
+              </div>
+              <div
+                v-if="v$.username.maxLength.$invalid"
+                class="error"
+              >
+                Username is too long. It can contains maximum {{ v$.username.maxLength.$params.max }} letters.
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label for="emailAddress">Email address</label>
@@ -35,6 +64,29 @@
               type="email"
               class="form-control"
             >
+            <div
+              v-if="v$.emailAddress.$dirty"
+              class="field-error"
+            >
+              <div
+                v-if="v$.emailAddress.required.$invalid"
+                class="error"
+              >
+                Email address is required
+              </div>
+              <div
+                v-if="v$.emailAddress.email.$invalid"
+                class="error"
+              >
+                This is not a valid email address
+              </div>
+              <div
+                v-if="v$.emailAddress.maxLength.$invalid"
+                class="error"
+              >
+                Email address is too long. It can contains maximum {{ v$.emailAddress.maxLength.$params.max }} letters.
+              </div>
+            </div>
           </div>
           <div class="form-group">
             <label for="password">Password</label>
@@ -44,6 +96,29 @@
               type="password"
               class="form-control"
             >
+            <div
+              v-if="v$.password.$dirty"
+              class="field-error"
+            >
+              <div
+                v-if="v$.password.required.$invalid"
+                class="error"
+              >
+                Password is required
+              </div>
+              <div
+                v-if="v$.password.minLength.$invalid"
+                class="error"
+              >
+                Password is too short. It can contains at least {{ v$.password.minLength.$params.min }} letters.
+              </div>
+              <div
+                v-if="v$.password.maxLength.$invalid"
+                class="error"
+              >
+                Password is too long. It can contains maximum {{ v$.password.maxLength.$params.max }} letters.
+              </div>
+            </div>
           </div>
           <button
             type="submit"
@@ -86,6 +161,8 @@
 <script>
 import { reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import useVuelidate from '@vuelidate/core'
+import { required, email, minLength, maxLength, alphaNum } from '@vuelidate/validators'
 import registrationService from '@/services/registration'
 
 export default {
@@ -97,25 +174,47 @@ export default {
       emailAddress: '',
       password: ''
     })
-    const errorMessage = reactive({
-      visible: false,
-      message: ''
-    })
+    const errorMessage = ref('')
+    const rules = {
+      username: {
+        required,
+        minLength: minLength(5),
+        maxLength: maxLength(50),
+        alphaNum
+      },
+      emailAddress: {
+        required,
+        email,
+        maxLength: maxLength(100)
+      },
+      password: {
+        required,
+        minLength: minLength(6),
+        maxLength: maxLength(30)
+      }
+    }
+
+    const v$ = useVuelidate(rules, form)
 
     async function submitForm() {
+      v$.value.$touch()
+      if (v$.value.$invalid) {
+        return
+      }
+
       try {
         await registrationService.register(form);
         router.push({name: 'LoginPage'})
         await router.isReady()
       } catch (error) {
-        errorMessage.message = 'Failed to register user. Reason: ' +
+        errorMessage.value = 'Failed to register user. Reason: ' +
         (error.message ? error.message : 'Unknown') + '.'
-        errorMessage.visible = true
       }
     }
 
     return {
       form,
+      v$,
       errorMessage,
       submitForm,
     }
