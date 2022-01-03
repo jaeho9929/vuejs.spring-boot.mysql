@@ -38,3 +38,7 @@ out/
 
 ### Ignore dev properties ###
 src/main/resources-env/dev/*
+
+### Ignore front-end resources ###
+src/main/resources/static/
+src/main/resources/templates/
